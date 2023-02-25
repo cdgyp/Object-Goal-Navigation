@@ -212,7 +212,8 @@ def main():
         local_pose[e] = full_pose[e] - \
             torch.from_numpy(origins[e]).to(device).float()
 
-        episode_collector.update(e, envs.get_scene_id()[e])
+        new_scene_name = envs.get_scene_id()[e]
+        episode_collector.update(e, new_scene_name)
 
     def update_intrinsic_rew(e):
         prev_explored_area = full_map[e, 1].sum(1).sum(0)

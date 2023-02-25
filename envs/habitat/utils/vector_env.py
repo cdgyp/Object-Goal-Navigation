@@ -234,7 +234,7 @@ class VectorEnv:
                     result = env.get_metrics()
                     connection_write_fn(result)
                 elif command == GET_SCENE_ID:
-                    result = env.current_episode.scene_id
+                    result = env.scene_name
                     connection_write_fn(result)
                 
                 else:

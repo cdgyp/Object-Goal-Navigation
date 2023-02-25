@@ -57,9 +57,8 @@ class EpisodeCollector:
         if not path.isdir(dir):
             os.makedirs(dir, exist_ok=True)
     
-    def update(self, i, new_name:str=None):
-        if new_name is not None:
-            self.names[i] = self._preprocess_name(new_name)
+    def update(self, i: int, new_name: str):
+        self.names[i] = self._preprocess_name(new_name)
         self._init_file_structure_single(i)
         self.last_area_size[i] = 0
         self.update_cnt[i] += 1
