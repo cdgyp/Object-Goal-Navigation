@@ -7,9 +7,11 @@ import gym
 import torch.nn as nn
 import torch
 import numpy as np
+import threading
 
 from model import RL_Policy, Semantic_Mapping
 from utils.storage import GlobalRolloutStorage
+from utils.integration import EpisodeCollector
 from envs import make_vec_envs
 from arguments import get_args
 import algo
@@ -104,6 +106,7 @@ def main():
     full_map = torch.zeros(num_scenes, nc, full_w, full_h).float().to(device)
     local_map = torch.zeros(num_scenes, nc, local_w,
                             local_h).float().to(device)
+    episode_collector:EpisodeCollector = None
 
     # Initial full and local pose
     full_pose = torch.zeros(num_scenes, 3).float().to(device)
@@ -142,6 +145,16 @@ def main():
 
         return [gx1, gx2, gy1, gy2]
 
+    def new_episode_collector():
+        return EpisodeCollector(
+            scene_names=envs.get_scene_id(),
+            frequency=args.episode_collection_frequency, 
+            threshold=args.episode_collection_threshold,
+            path="{}/dump/{}/masksem/".format(args.dump_location, args.exp_name),
+            started=args.collect_episodes,
+            preview_size=args.preview_size
+        )
+
     def init_map_and_pose():
         full_map.fill_(0.)
         full_pose.fill_(0.)
@@ -170,6 +183,9 @@ def main():
                                     lmb[e, 2]:lmb[e, 3]]
             local_pose[e] = full_pose[e] - \
                 torch.from_numpy(origins[e]).to(device).float()
+        
+        nonlocal episode_collector
+        episode_collector = new_episode_collector()
 
     def init_map_and_pose_for_env(e):
         full_map[e].fill_(0.)
@@ -196,6 +212,8 @@ def main():
         local_pose[e] = full_pose[e] - \
             torch.from_numpy(origins[e]).to(device).float()
 
+        episode_collector.update(e, envs.get_scene_id()[e])
+
     def update_intrinsic_rew(e):
         prev_explored_area = full_map[e, 1].sum(1).sum(0)
         full_map[e, :, lmb[e, 0]:lmb[e, 1], lmb[e, 2]:lmb[e, 3]] = \
@@ -205,6 +223,7 @@ def main():
         intrinsic_rews[e] *= (args.map_resolution / 100.)**2  # to m^2
 
     init_map_and_pose()
+    assert episode_collector is not None
 
     # Global policy observation space
     ngc = 8 + args.num_sem_categories
@@ -490,6 +509,8 @@ def main():
             g_masks = torch.ones(num_scenes).float().to(device)
 
         # ------------------------------------------------------------------
+        
+        episode_collector.collect(full_map)
 
         # ------------------------------------------------------------------
         # Update long-term goal if target object is found

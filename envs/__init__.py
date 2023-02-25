@@ -1,6 +1,6 @@
 import torch
 
-from .habitat import construct_envs
+from .habitat import construct_envs, VectorEnv
 
 
 def make_vec_envs(args):
@@ -13,7 +13,7 @@ def make_vec_envs(args):
 # https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail/blob/master/a2c_ppo_acktr/envs.py#L159
 class VecPyTorch():
 
-    def __init__(self, venv, device):
+    def __init__(self, venv: VectorEnv, device):
         self.venv = venv
         self.num_envs = venv.num_envs
         self.observation_space = venv.observation_space
@@ -46,6 +46,9 @@ class VecPyTorch():
         reward = self.venv.get_rewards(inputs)
         reward = torch.from_numpy(reward).float()
         return reward
+    
+    def get_scene_id(self):
+        return self.venv.get_scene_id()
 
     def plan_act_and_preprocess(self, inputs):
         obs, reward, done, info = self.venv.plan_act_and_preprocess(inputs)

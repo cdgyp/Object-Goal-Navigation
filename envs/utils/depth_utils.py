@@ -236,6 +236,11 @@ def splat_feat_nd(init_grid, feat, coords):
         pos_dim.append(pos_d)
         wts_dim.append(wts_d)
 
+    """
+        如果从实数坐标直接约到小数会造成造成梯度中断
+        解决的方法类似可导直方图，这里 wts 就记录了点云格点到周围格子的逸散的量
+    """
+
     l_ix = [[0, 1] for d in range(n_dims)]
 
     for ix_d in itertools.product(*l_ix):

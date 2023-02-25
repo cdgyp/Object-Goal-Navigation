@@ -149,6 +149,12 @@ def get_args():
     parser.add_argument('--exp_pred_threshold', type=float, default=1.0)
     parser.add_argument('--collision_threshold', type=float, default=0.20)
 
+    # Episodes Collecting
+    parser.add_argument('--collect_episodes', type=int, default=0)
+    parser.add_argument('--episode_collection_frequency', type=float, default=1.0)
+    parser.add_argument('--episode_collection_threshold', type=int, default=100)
+    parser.add_argument('--preview_size', type=int, default=0)
+
     # parse arguments
     args = parser.parse_args()
 

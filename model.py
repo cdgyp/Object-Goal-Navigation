@@ -176,6 +176,7 @@ class Semantic_Mapping(nn.Module):
         ).float().to(self.device)
 
     def forward(self, obs, pose_obs, maps_last, poses_last):
+        # obs = np.concatenate((rgb, depth, sem_seg_pred))
         bs, c, h, w = obs.size()
         depth = obs[:, 3, :, :]
 
