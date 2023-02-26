@@ -7,9 +7,15 @@ import cv2
 import numpy as np
 
 def visualize(masksem: torch.Tensor, size: int):
-    mask, sem_map = masksem[[0]].round(), masksem[1:]
-    sem_map = torch.cat([mask * 1e-5 + torch.full_like(mask, 1e-5), torch.full_like(sem_map[[0]], 1e-5), sem_map], dim=0).argmax(0)
-    sem_map += 3 * (sem_map > 1)
+    mask, sem_map, other, obs = masksem[[0]].round(), masksem[1:-2], masksem[[-2]], masksem[[-1]]
+    sem_map = torch.cat([
+        mask * 1e-5, 
+        obs * 1e-3,
+        other * 1e-8,
+        sem_map * 1e-0
+    ], dim=0)
+    sem_map = sem_map.argmax(0)
+    sem_map += 2 * (sem_map > 2)
     sem_map = sem_map.cpu().numpy()
 
     color_pal = [int(x * 255.) for x in color_palette]
