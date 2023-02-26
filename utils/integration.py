@@ -27,45 +27,52 @@ def visualize(masksem: torch.Tensor, size: int):
                                 interpolation=cv2.INTER_NEAREST)
     return sem_map_vis
 
-class EpisodeCollector:
-    def _preprocess_name(self, name: str):
-        return os.path.splitext(os.path.basename(name))[0]
-    def __init__(self, scene_names: 'list[str]', frequency: float, threshold: int, path: str, started=True, preview_size=0) -> None:
+class Collector:
+    def __init__(self, scene_names: 'list[str]', path: str) -> None:
         if not isinstance(scene_names, list): scene_names = [scene_names]
         for i in range(len(scene_names)):
             scene_names[i] = self._preprocess_name(scene_names[i])
         self.names = scene_names
-        self.frequency = frequency if started else 0
-        self.thereshold_abs = threshold
         self.path = path
-        self.started = started
-        self.last_area_size = 0
-        self.preview_size = preview_size
-        self.update_cnt = [0] * len(self.names)
         self._init_file_structure()
-    def _preview(self):
-        return self.preview_size > 0
-
     def _init_file_structure(self):
         if not path.isdir(self.path):
             os.makedirs(self.path, exist_ok=True)
-        for i in range(len(self.names)):
-            self._init_file_structure_single(i)
     def _init_file_structure_single(self, i):
         name = self.names[i]
         dir = path.join(self.path, name)
         if not path.isdir(dir):
             os.makedirs(dir, exist_ok=True)
-    
+    def _preprocess_name(self, name: str):
+        return os.path.splitext(os.path.basename(name))[0]
     def update(self, i: int, new_name: str):
         self.names[i] = self._preprocess_name(new_name)
+
+class EpisodeCollector(Collector):
+    def __init__(self, scene_names: 'list[str]', frequency: float, threshold: int, path: str, started=True, preview_size=0) -> None:
+        super().__init__(scene_names=scene_names, path=path)
+        self.frequency = frequency if started else 0
+        self.thereshold_abs = threshold
+        self.started = started
+        self.last_area_size = 0
+        self.preview_size = preview_size
+        self.update_cnt = [0] * len(self.names)
+    def _init_file_structure(self):
+        super()._init_file_structure()
+        for i in range(len(self.names)):
+            self._init_file_structure_single(i)
+    def _preview(self):
+        return self.preview_size > 0
+    def update(self, i: int, new_name: str):
+        res = super().update(i, new_name)
         self._init_file_structure_single(i)
         self.last_area_size[i] = 0
         self.update_cnt[i] += 1
-    
+        return res
+
     def collect(self, local_map: torch.Tensor):
-        mask, semantic = local_map[:, 1:2].clamp(min=0, max=1).detach(), local_map[:, 4:].detach()
-        masked_semantic = torch.cat([mask, semantic], dim=1)
+        obstacle, mask, semantic = local_map[:, [0]].clamp(min=0, max=1).detach(), local_map[:, [1]].clamp(min=0, max=1).detach(), local_map[:, 4:].detach()
+        masked_semantic = torch.cat([mask, semantic, obstacle], dim=1)
         area_size = mask.clamp(max=1).sum(list(range(len(mask.shape)))[1:])
 
         # manual_size = semantic.sum(dim=list(range(len(semantic.shape)))[1:])
