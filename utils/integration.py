@@ -1,13 +1,21 @@
 import torch
 import os
 from os import path
-from constants import color_palette
+try:
+    from models.navigation.constants import color_palette
+except ImportError:
+    from constants import color_palette
 from PIL import Image
 import cv2
 import numpy as np
 
-def visualize(masksem: torch.Tensor, size: int):
+def visualize(masksem: torch.Tensor, size: int=None):
+    """
+        masksem: C x W x H
+        C: mask, category_0, category_1, ..., category_k, category_other, obscatles
+    """
     mask, sem_map, other, obs = masksem[[0]].round(), masksem[1:-2], masksem[[-2]], masksem[[-1]]
+    # print(sem_map[0])
     sem_map = torch.cat([
         mask * 1e-5, 
         obs * 1e-3,
@@ -21,15 +29,15 @@ def visualize(masksem: torch.Tensor, size: int):
     color_pal = [int(x * 255.) for x in color_palette]
     sem_map_vis = Image.new("P", (sem_map.shape[1],
                                       sem_map.shape[0]))
-    sem_map_vis.putpalette(color_pal)
+    sem_map_vis.putpalette(color_pal, rawmode='RGB')
     sem_map_vis.putdata(sem_map.flatten().astype(np.uint8))
     sem_map_vis = np.array(sem_map_vis.convert("RGB"))
-    # sem_map_vis = sem_map_vis * mask + (sem_map_vis + 255) / 2 * (1 - mask) # 使未实际探索区域半透明
     sem_map_vis = np.flipud(sem_map_vis)
 
-    sem_map_vis = sem_map_vis[:, :, [2, 1, 0]]
 
-    sem_map_vis = cv2.resize(sem_map_vis, (size, size),
+    sem_map_vis = sem_map_vis[:, :, [2, 1, 0]]
+    if size is not None:
+        sem_map_vis = cv2.resize(sem_map_vis, (size, size),
                                 interpolation=cv2.INTER_NEAREST)
     return sem_map_vis
 
