@@ -189,7 +189,6 @@ class TopdownCollector(Collector):
         semantic = torch.cat([semantic, obstacle], dim=0)
         tensor_name = path.join(self.path, self.names[i] + '-sparse' + '.topdown')
         torch.save(semantic.to_sparse(), tensor_name)
-
         if self._preview():
             vis = visualize(torch.cat([mask, semantic]), self.preview_size)
             img_name = path.join(self.path, self.names[i] + '-' + str(i) + '.jpg')
@@ -205,6 +204,11 @@ class WrappedTopdownCollector:
             self.collector = TopdownCollector(scene_names, args)
         else:
             self.collector = None
+    def update(self, *args, **kwargs):
+        if self.collector is not None:
+            return self.collector.update(*args, **kwargs)
+        else:
+            return None
     def __getattr__(self, __name: str):
         if self.collector is not None:
             return getattr(self.collector, __name)
