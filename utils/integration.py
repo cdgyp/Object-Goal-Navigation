@@ -60,7 +60,7 @@ class EpisodeCollector(Collector):
         self.frequency = frequency if started else 0
         self.thereshold_abs = threshold
         self.started = started
-        self.last_area_size = 0
+        self.last_area_size = torch.zeros(len(scene_names))
         self.preview_size = preview_size
         self.update_cnt = [0] * len(self.names)
     def _init_file_structure(self):
@@ -84,6 +84,8 @@ class EpisodeCollector(Collector):
         # manual_size = semantic.sum(dim=list(range(len(semantic.shape)))[1:])
         # assert (area_size - manual_size).abs().max() < 10, (area_size, manual_size)
 
+        if self.last_area_size.device != area_size.device:
+            self.last_area_size = self.last_area_size.to(area_size.device)
         expansion = area_size - self.last_area_size
         largely_expanded = expansion >= self.thereshold_abs
         random_decision = torch.rand([mask.shape[0]]).to(largely_expanded.device) <= self.frequency
