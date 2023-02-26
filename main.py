@@ -1,3 +1,4 @@
+import habitat_sim
 from collections import deque, defaultdict
 import os
 import logging
@@ -12,15 +13,25 @@ import threading
 from model import RL_Policy, Semantic_Mapping
 from utils.storage import GlobalRolloutStorage
 from utils.integration import EpisodeCollector
+from utils.topdown import WrappedTopdownCollector, TopdownCollector
 from envs import make_vec_envs
 from arguments import get_args
 import algo
+
+from habitat_sim.agent.controls import default_controls
 
 os.environ["OMP_NUM_THREADS"] = "1"
 
 
 def main():
     args = get_args()
+    # if args.topdown:
+        # habitat_sim.registry.register_move_fn(default_controls.MoveRight,
+            # name="camera_move_right", body_action=False)
+        # habitat_sim.registry.register_move_fn(default_controls.MoveLeft,
+            # name="camera_move_left", body_action=False)
+        # habitat_sim.registry.register_move_fn(default_controls.MoveForward,
+            # name="camera_move_forward", body_action=False)
 
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -107,6 +118,7 @@ def main():
     local_map = torch.zeros(num_scenes, nc, local_w,
                             local_h).float().to(device)
     episode_collector:EpisodeCollector = None
+    topdown_collector: TopdownCollector = None
 
     # Initial full and local pose
     full_pose = torch.zeros(num_scenes, 3).float().to(device)
@@ -145,16 +157,6 @@ def main():
 
         return [gx1, gx2, gy1, gy2]
 
-    def new_episode_collector():
-        return EpisodeCollector(
-            scene_names=envs.get_scene_id(),
-            frequency=args.episode_collection_frequency, 
-            threshold=args.episode_collection_threshold,
-            path="{}/dump/{}/masksem/".format(args.dump_location, args.exp_name),
-            started=args.collect_episodes,
-            preview_size=args.preview_size
-        )
-
     def init_map_and_pose():
         full_map.fill_(0.)
         full_pose.fill_(0.)
@@ -184,10 +186,27 @@ def main():
             local_pose[e] = full_pose[e] - \
                 torch.from_numpy(origins[e]).to(device).float()
         
-        nonlocal episode_collector
-        episode_collector = new_episode_collector()
+        nonlocal episode_collector, topdown_collector
+        episode_collector = EpisodeCollector(
+            scene_names=envs.get_scene_id(),
+            frequency=args.episode_collection_frequency, 
+            threshold=args.episode_collection_threshold,
+            path="{}/dump/{}/masksem/".format(args.dump_location, args.exp_name),
+            started=args.collect_episodes,
+            preview_size=args.preview_size
+        )
+        topdown_collector = WrappedTopdownCollector(
+            scene_names=envs.get_scene_id(),
+            args=args,
+            started=args.topdown
+        )
+
 
     def init_map_and_pose_for_env(e):
+        new_scene_name = envs.get_scene_id()[e]
+        topdown_collector.update(e, new_scene_name, full_map[e])
+        episode_collector.update(e, new_scene_name)
+
         full_map[e].fill_(0.)
         full_pose[e].fill_(0.)
         full_pose[e, :2] = args.map_size_cm / 100.0 / 2.0
@@ -211,9 +230,6 @@ def main():
         local_map[e] = full_map[e, :, lmb[e, 0]:lmb[e, 1], lmb[e, 2]:lmb[e, 3]]
         local_pose[e] = full_pose[e] - \
             torch.from_numpy(origins[e]).to(device).float()
-
-        new_scene_name = envs.get_scene_id()[e]
-        episode_collector.update(e, new_scene_name)
 
     def update_intrinsic_rew(e):
         prev_explored_area = full_map[e, 1].sum(1).sum(0)

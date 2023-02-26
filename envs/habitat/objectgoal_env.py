@@ -342,6 +342,8 @@ class ObjectGoal_Env(habitat.RLEnv):
 
         return state, self.info
 
+    def _process_done(self, done):
+        return done
     def step(self, action):
         """Function to take an action in the environment.
 
@@ -364,6 +366,7 @@ class ObjectGoal_Env(habitat.RLEnv):
             action = 3
 
         obs, rew, done, _ = super().step(action)
+        done = self._process_done(done)
 
         # Get pose change
         dx, dy, do = self.get_pose_change()

@@ -81,6 +81,8 @@ class Sem_Exp_Env_Agent(ObjectGoal_Env):
 
         return obs, info
 
+    def _process_local_map(self, local_map):
+        return local_map
     def plan_act_and_preprocess(self, planner_inputs):
         """Function responsible for planning, taking the action and
         preprocessing observations

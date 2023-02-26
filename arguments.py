@@ -155,8 +155,17 @@ def get_args():
     parser.add_argument('--episode_collection_threshold', type=int, default=100)
     parser.add_argument('--preview_size', type=int, default=0)
 
+    # Topdown Collecting
+    parser.add_argument('--topdown', type=int, default=0)
+    parser.add_argument('--num_scan_part', type=int, default=5, 
+        help='扫描时将全局地图每边划成 num_scan_part，分别扫描共 num_scan_part^2 个子区域')
+
     # parse arguments
     args = parser.parse_args()
+
+    if args.topdown:
+        args.num_train_episodes = 1
+        args.agent = 'topdown_scanner'
 
     args.cuda = not args.no_cuda and torch.cuda.is_available()
 

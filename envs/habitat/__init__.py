@@ -8,6 +8,7 @@ from habitat.datasets.pointnav.pointnav_dataset import PointNavDatasetV1
 from habitat import Config, Env, RLEnv, VectorEnv, make_dataset
 
 from agents.sem_exp import Sem_Exp_Env_Agent
+from utils.topdown import TopdownScanner
 from .objectgoal_env import ObjectGoal_Env
 
 from .utils.vector_env import VectorEnv
@@ -24,6 +25,13 @@ def make_env_fn(args, config_env, rank):
                                 config_env=config_env,
                                 dataset=dataset
                                 )
+    elif args.agent == 'topdown_scanner':
+        env = TopdownScanner(
+            args=args,
+            rank=rank,
+            config_env=config_env,
+            dataset=dataset
+        )
     else:
         env = ObjectGoal_Env(args=args, rank=rank,
                              config_env=config_env,
@@ -144,7 +152,7 @@ def construct_envs(args):
             tuple(
                 zip(args_list, env_configs, range(args.num_processes))
             )
-        ),
+        )
     )
 
     return envs
