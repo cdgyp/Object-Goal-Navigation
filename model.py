@@ -19,13 +19,13 @@ class Goal_Oriented_Semantic_Policy(NNBase):
 
         self.main = nn.Sequential(
             nn.MaxPool2d(2),
-            nn.Conv2d(num_sem_categories * 2 + 8, 48, 3, stride=1, padding=1),
+            nn.Conv2d(num_sem_categories * 2 + 8 + 1, 64, 3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2),
-            nn.Conv2d(48, 72, 3, stride=1, padding=1),
+            nn.Conv2d(64, 96, 3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2),
-            nn.Conv2d(72, 128, 3, stride=1, padding=1),
+            nn.Conv2d(96, 128, 3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2),
             nn.Conv2d(128, 64, 3, stride=1, padding=1),

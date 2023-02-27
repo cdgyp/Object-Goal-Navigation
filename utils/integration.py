@@ -107,4 +107,3 @@ class EpisodeCollector(Collector):
                     img_name = path.join(dir, str(cnt) + '-' + str(i) + '-eps' + str(self.update_cnt[i]) + '.jpg')
                     cv2.imwrite(img_name, vis)
         self.last_area_size = (~collect) * self.last_area_size + collect * area_size
-        

@@ -7,7 +7,7 @@ from models.perception.prediction.palette import prepare
 class MapOutpainter(torch.nn.Module):
     def __init__(self, num_category: int, args, gpu_ids: 'list[int]', image_size=[240, 240]) -> None:
         super().__init__()
-        self.model = prepare(
+        self.model, _ = prepare(
             class_number=num_category+1,
             base_config='models/perception/prediction/palette/config/simple_uncropping.json',
             batch_size=args.num_processes,

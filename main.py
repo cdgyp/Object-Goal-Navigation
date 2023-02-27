@@ -7,6 +7,7 @@ import gym
 import torch.nn as nn
 import torch
 import numpy as np
+import collections
 
 from .model import RL_Policy, Semantic_Mapping
 from .utils.storage import GlobalRolloutStorage
@@ -103,6 +104,7 @@ def main():
     # 4. Past Agent Locations
     # 5,6,7,.. : Semantic Categories
     nc = args.num_sem_categories + 4  # num channels
+    nc_outpaint = args.num_sem_categories + 1
 
     # Calculating full and local map sizes
     map_size = args.map_size_cm // args.map_resolution
@@ -112,7 +114,7 @@ def main():
 
     # Initializing full and local map
     full_map = torch.zeros(num_scenes, nc, full_w, full_h).float().to(device)
-    outpainted_map = torch.zeros(num_scenes, args.num_sem_categories, full_w, full_h).float().to(device)
+    outpainted_map = torch.zeros(num_scenes, nc_outpaint, full_w, full_h).float().to(device)
     local_map = torch.zeros(num_scenes, nc, local_w,
                             local_h).float().to(device)
     episode_collector:EpisodeCollector = None
@@ -210,7 +212,7 @@ def main():
             args=args,
             started=args.topdown
         )
-        outpainter = MapOutpainter(outpainted_map.shape[1], args, [2], [120, 120]).to(device)
+        outpainter = MapOutpainter(args.num_sem_categories, args, [2], [120, 120]).to(device)
 
     def init_map_and_pose_for_env(e):
         new_scene_name = envs.get_scene_id()[e]
@@ -254,7 +256,7 @@ def main():
     assert episode_collector is not None
 
     # Global policy observation space
-    ngc = 8 + args.num_sem_categories
+    ngc = 8 + args.num_sem_categories + nc_outpaint
     es = 2
     g_observation_space = gym.spaces.Box(0, 1,
                                          (ngc,
@@ -277,7 +279,7 @@ def main():
                          model_type=1,
                          base_kwargs={'recurrent': args.use_recurrent_global,
                                       'hidden_size': g_hidden_size,
-                                      'num_sem_categories': ngc - 8
+                                      'num_sem_categories': args.num_sem_categories
                                       }).to(device)
     g_agent = algo.PPO(g_policy, args.clip_param, args.ppo_epoch,
                        args.num_mini_batch, args.value_loss_coef,
@@ -294,12 +296,25 @@ def main():
                                       num_scenes, g_observation_space.shape,
                                       g_action_space, g_policy.rec_state_size,
                                       es).to(device)
-
     if args.load != "0":
         print("Loading model {}".format(args.load))
         state_dict = torch.load(args.load,
                                 map_location=lambda storage, loc: storage)
-        g_policy.load_state_dict(state_dict)
+        state_dict: collections.OrderedDict[str, torch.Tensor]
+        try:
+            g_policy.load_state_dict(state_dict)
+        except RuntimeError:
+            # 尺寸不同
+            for name, parameter in g_policy.named_parameters():
+                if parameter.shape != state_dict[name].shape:
+                    pretrained = state_dict[name]
+                    assert len(parameter.shape) == len(pretrained.shape)
+                    pad_seq = [[0, parameter.shape[-i] - pretrained.shape[-i]] for i in range(1, len(parameter.shape) + 1)]
+                    state_dict[name] = torch.nn.functional.pad(pretrained, tuple(np.array(pad_seq).flatten().tolist()), value=0.)
+                assert parameter.shape == state_dict[name].shape
+            g_policy.load_state_dict(state_dict)
+
+            
 
     if args.eval:
         g_policy.eval()
@@ -330,7 +345,7 @@ def main():
         full_map[:, 0:4, :, :])
     global_input[:, 8:, :, :] = torch.cat([
             local_map[:, 4:, :, :].detach(), 
-            outpainted_map.detach()
+            nn.MaxPool2d(args.global_downscaling)(outpainted_map)
         ], 
         dim=1
     )
@@ -487,7 +502,12 @@ def main():
             global_input[:, 4:8, :, :] = \
                 nn.MaxPool2d(args.global_downscaling)(
                     full_map[:, 0:4, :, :])
-            global_input[:, 8:, :, :] = local_map[:, 4:, :, :].detach()
+            global_input[:, 8:, :, :] = torch.cat([
+                    local_map[:, 4:, :, :].detach(), 
+                    nn.MaxPool2d(args.global_downscaling)(outpainted_map)
+                ], 
+                dim=1
+            )
             goal_cat_id = torch.from_numpy(np.asarray(
                 [infos[env_idx]['goal_cat_id'] for env_idx
                  in range(num_scenes)]))
