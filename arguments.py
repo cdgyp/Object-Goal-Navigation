@@ -161,7 +161,7 @@ def get_args():
         help='扫描时将全局地图每边划成 num_scan_part，分别扫描共 num_scan_part^2 个子区域')
 
     # Out-Painting
-    parser.add_argument('--outpaint', type=int, default=0)
+    parser.add_argument('--outpaint', type=int, default=1)
 
     # parse arguments
     args = parser.parse_args()
