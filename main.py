@@ -120,6 +120,15 @@ def main():
     episode_collector:EpisodeCollector = None
     topdown_collector: TopdownCollector = None
     outpainter: MapOutpainter = None
+    def outpainting_scheduler(outpaint_every_step: int):
+        i = 0
+        while True:
+            if outpaint_every_step == 0:
+                yield False
+                continue
+            i = (i + 1) % outpaint_every_step
+            yield i == 0
+    outpaint_scheduler = outpainting_scheduler(2)
             
 
     # Initial full and local pose
@@ -485,7 +494,7 @@ def main():
                                         lmb[e, 2]:lmb[e, 3]]
                 local_pose[e] = full_pose[e] - \
                     torch.from_numpy(origins[e]).to(device).float()
-            if args.outpaint:
+            if args.outpaint and next(outpaint_scheduler):
                 assert full_map.requires_grad == False
                 with torch.no_grad():
                     outpainted_map = outpainter(full_map)
