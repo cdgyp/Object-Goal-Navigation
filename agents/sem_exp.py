@@ -54,7 +54,7 @@ class Sem_Exp_Env_Agent(ObjectGoal_Env):
         self.count_forward_actions = None
 
         if args.visualize or args.print_images:
-            self.legend = cv2.imread('docs/legend.png')
+            self.legend = cv2.imread('models/navigation/docs/legend.png')
             self.vis_image = None
             self.rgb_vis = None
 
@@ -392,7 +392,7 @@ class Sem_Exp_Env_Agent(ObjectGoal_Env):
         sem_map_vis = cv2.resize(sem_map_vis, (480, 480),
                                  interpolation=cv2.INTER_NEAREST)
         
-        outpainted = inputs['outpained_full_map']
+        outpainted = inputs['outpainted_full_map']
         outpainted_vis = visualize(torch.cat([torch.zeros_like(outpainted[[0]]), outpainted]), 480)
 
         self.vis_image[50:530, 15:655] = self.rgb_vis
