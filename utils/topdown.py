@@ -1,14 +1,14 @@
-import habitat_sim
-from agents.sem_exp import Sem_Exp_Env_Agent
 from habitat_sim.simulator import Simulator
 from habitat.tasks.nav.shortest_path_follower import ShortestPathFollower
 import numpy as np
-from utils.integration import visualize, Collector
 import torch
 from os import path
 import cv2
 from itertools import product
 from tqdm.auto import tqdm
+
+from ..agents.sem_exp import Sem_Exp_Env_Agent
+from .integration import visualize, Collector
 
 class TopdownScanner(Sem_Exp_Env_Agent):
     def __init__(self, args, rank, config_env, dataset):

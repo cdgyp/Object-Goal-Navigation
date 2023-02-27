@@ -8,9 +8,9 @@ import quaternion
 import skimage.morphology
 import habitat
 
-from envs.utils.fmm_planner import FMMPlanner
-from constants import coco_categories
-import envs.utils.pose as pu
+from ..utils.fmm_planner import FMMPlanner
+from ...constants import coco_categories
+from ..utils import pose as pu
 
 
 class ObjectGoal_Env(habitat.RLEnv):

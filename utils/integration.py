@@ -1,13 +1,11 @@
 import torch
 import os
 from os import path
-try:
-    from models.navigation.constants import color_palette
-except ImportError:
-    from constants import color_palette
 from PIL import Image
 import cv2
 import numpy as np
+
+from ..constants import color_palette
 
 def visualize(masksem: torch.Tensor, size: int=None):
     """

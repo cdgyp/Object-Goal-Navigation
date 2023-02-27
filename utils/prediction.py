@@ -6,16 +6,17 @@ from models.perception.prediction.palette import prepare
 
 class MapOutpainter(torch.nn.Module):
     def __init__(self, num_category: int, args, gpu_ids: 'list[int]', image_size=[240, 240]) -> None:
+        super().__init__()
         self.model = prepare(
             class_number=num_category+1,
-            base_config='../../models/perception/prediction/palette/config/simple_uncropping.json',
+            base_config='models/perception/prediction/palette/config/simple_uncropping.json',
             batch_size=args.num_processes,
             gpu_ids=gpu_ids,
             epoch_per_train=1,
             iter_per_train=1000,
         )
         self.image_size = torch.Size(image_size)
-        self.pool = torch.nn.modules.AdaptiveAvgPool2d(image_size)
+        self.pool = torch.nn.AdaptiveAvgPool2d(image_size)
     def forward(self, full_map: torch.Tensor):
         """outpaint
 

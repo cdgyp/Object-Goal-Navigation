@@ -1,4 +1,3 @@
-import habitat_sim
 from collections import deque, defaultdict
 import os
 import logging
@@ -8,16 +7,15 @@ import gym
 import torch.nn as nn
 import torch
 import numpy as np
-import threading
 
-from model import RL_Policy, Semantic_Mapping
-from utils.storage import GlobalRolloutStorage
-from utils.integration import EpisodeCollector
-from utils.topdown import WrappedTopdownCollector, TopdownCollector
-from utils.prediction import MapOutpainter
-from envs import make_vec_envs
-from arguments import get_args
-import algo
+from .model import RL_Policy, Semantic_Mapping
+from .utils.storage import GlobalRolloutStorage
+from .utils.integration import EpisodeCollector
+from .utils.topdown import WrappedTopdownCollector, TopdownCollector
+from .utils.prediction import MapOutpainter
+from .envs import make_vec_envs
+from .arguments import get_args
+from . import algo
 
 os.environ["OMP_NUM_THREADS"] = "1"
 

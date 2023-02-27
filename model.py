@@ -3,9 +3,9 @@ import torch.nn as nn
 from torch.nn import functional as F
 import numpy as np
 
-from utils.distributions import Categorical, DiagGaussian
-from utils.model import get_grid, ChannelPool, Flatten, NNBase
-import envs.utils.depth_utils as du
+from .utils.distributions import Categorical, DiagGaussian
+from .utils.model import get_grid, ChannelPool, Flatten, NNBase
+from .envs.utils import depth_utils as du
 
 
 class Goal_Oriented_Semantic_Policy(NNBase):
@@ -19,13 +19,13 @@ class Goal_Oriented_Semantic_Policy(NNBase):
 
         self.main = nn.Sequential(
             nn.MaxPool2d(2),
-            nn.Conv2d(num_sem_categories * 2 + 8, 32, 3, stride=1, padding=1),
+            nn.Conv2d(num_sem_categories * 2 + 8, 48, 3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2),
-            nn.Conv2d(32, 64, 3, stride=1, padding=1),
+            nn.Conv2d(48, 72, 3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2),
-            nn.Conv2d(64, 128, 3, stride=1, padding=1),
+            nn.Conv2d(72, 128, 3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2),
             nn.Conv2d(128, 64, 3, stride=1, padding=1),

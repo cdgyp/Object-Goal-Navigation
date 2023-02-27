@@ -4,16 +4,16 @@ import cv2
 import numpy as np
 import skimage.morphology
 from PIL import Image
+import torch
 from torchvision import transforms
 
-from envs.utils.fmm_planner import FMMPlanner
-from envs.habitat.objectgoal_env import ObjectGoal_Env
-from agents.utils.semantic_prediction import SemanticPredMaskRCNN
-from constants import color_palette
-import envs.utils.pose as pu
-import agents.utils.visualization as vu
-from utils.integration import visualize
-import torch
+from ..envs.utils.fmm_planner import FMMPlanner
+from ..envs.habitat.objectgoal_env import ObjectGoal_Env
+from .utils.semantic_prediction import SemanticPredMaskRCNN
+from ..constants import color_palette
+from ..envs.utils import pose as pu
+from .utils import visualization as vu
+from ..utils.integration import visualize
 
 
 class Sem_Exp_Env_Agent(ObjectGoal_Env):

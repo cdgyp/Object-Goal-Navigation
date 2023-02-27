@@ -7,8 +7,13 @@ from habitat.config.default import get_config as cfg_env
 from habitat.datasets.pointnav.pointnav_dataset import PointNavDatasetV1
 from habitat import Config, Env, RLEnv, VectorEnv, make_dataset
 
-from agents.sem_exp import Sem_Exp_Env_Agent
-from utils.topdown import TopdownScanner
+import os
+
+_script_dir = os.path.dirname(os.path.realpath(__file__))
+
+
+from ...agents.sem_exp import Sem_Exp_Env_Agent
+from ...utils.topdown import TopdownScanner
 from .objectgoal_env import ObjectGoal_Env
 
 from .utils.vector_env import VectorEnv
@@ -57,7 +62,7 @@ def construct_envs(args):
     env_configs = []
     args_list = []
 
-    basic_config = cfg_env(config_paths=["envs/habitat/configs/"
+    basic_config = cfg_env(config_paths=[_script_dir + "/../habitat/configs/"
                                          + args.task_config])
     basic_config.defrost()
     basic_config.DATASET.SPLIT = args.split
@@ -86,7 +91,7 @@ def construct_envs(args):
 
     print("Scenes per thread:")
     for i in range(args.num_processes):
-        config_env = cfg_env(config_paths=["envs/habitat/configs/"
+        config_env = cfg_env(config_paths=[_script_dir + "/../habitat/configs/"
                                            + args.task_config])
         config_env.defrost()
 

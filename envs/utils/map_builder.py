@@ -1,5 +1,5 @@
 import numpy as np
-import envs.utils.depth_utils as du
+import depth_utils as du
 
 
 class MapBuilder(object):

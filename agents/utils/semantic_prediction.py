@@ -16,7 +16,7 @@ from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.utils.visualizer import ColorMode, Visualizer
 import detectron2.data.transforms as T
 
-from constants import coco_categories_mapping
+from ...constants import coco_categories_mapping
 
 
 class SemanticPredMaskRCNN():
@@ -58,7 +58,7 @@ def compress_sem_map(sem_map):
 class ImageSegmentation():
     def __init__(self, args):
         string_args = """
-            --config-file configs/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml
+            --config-file models/navigation/configs/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml
             --input input1.jpeg
             --confidence-threshold {}
             --opts MODEL.WEIGHTS
@@ -86,6 +86,7 @@ class ImageSegmentation():
 def setup_cfg(args):
     # load config from file and command-line arguments
     cfg = get_cfg()
+    # assert 0, args
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     # Set score_threshold for builtin models
