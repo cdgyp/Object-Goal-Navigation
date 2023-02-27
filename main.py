@@ -485,10 +485,10 @@ def main():
                                         lmb[e, 2]:lmb[e, 3]]
                 local_pose[e] = full_pose[e] - \
                     torch.from_numpy(origins[e]).to(device).float()
-
-            assert full_map.requires_grad == False
-            with torch.no_grad():
-                outpainted_map = outpainter(full_map)
+            if args.outpaint:
+                assert full_map.requires_grad == False
+                with torch.no_grad():
+                    outpainted_map = outpainter(full_map)
 
             locs = local_pose.cpu().numpy()
             for e in range(num_scenes):
