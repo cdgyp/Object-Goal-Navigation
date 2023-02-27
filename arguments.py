@@ -44,7 +44,7 @@ def get_args():
                         help='path to dump models and log (default: ./tmp/)')
     parser.add_argument('--exp_name', type=str, default="exp1",
                         help='experiment name (default: exp1)')
-    parser.add_argument('--save_periodic', type=int, default=500000,
+    parser.add_argument('--save_periodic', type=int, default=50000,
                         help='Model save frequency in number of updates')
     parser.add_argument('--load', type=str, default="0",
                         help="""model path to load,
