@@ -120,15 +120,6 @@ def main():
     episode_collector:EpisodeCollector = None
     topdown_collector: TopdownCollector = None
     outpainter: MapOutpainter = None
-    def outpainting_scheduler(outpaint_every_step: int):
-        i = 0
-        while True:
-            if outpaint_every_step == 0:
-                yield False
-                continue
-            i = (i + 1) % outpaint_every_step
-            yield i == 0
-    outpaint_scheduler = outpainting_scheduler(args.outpaint_every_step)
             
 
     # Initial full and local pose
@@ -390,7 +381,7 @@ def main():
         p_input['new_goal'] = 1
         p_input['found_goal'] = 0
         p_input['wait'] = wait_env[e] or finished[e]
-        p_input['outpainted_full_map'] = outpainted_map
+        p_input['outpainted_full_map'] = outpainted_map[e]
         if args.visualize or args.print_images:
             local_map[e, -1, :, :] = 1e-5
             p_input['sem_map_pred'] = local_map[e, 4:, :, :
@@ -495,6 +486,10 @@ def main():
                 local_pose[e] = full_pose[e] - \
                     torch.from_numpy(origins[e]).to(device).float()
 
+            assert full_map.requires_grad == False
+            with torch.no_grad():
+                outpainted_map = outpainter(full_map)
+
             locs = local_pose.cpu().numpy()
             for e in range(num_scenes):
                 global_orientation[e] = int((locs[e, 2] + 180.0) / 5.)
@@ -565,10 +560,6 @@ def main():
         # ------------------------------------------------------------------
         
         episode_collector.collect(full_map)
-        if next(outpaint_scheduler):
-            assert full_map.requires_grad == False
-            with torch.no_grad():
-                outpainted_map = outpainter(full_map)
         
 
         # ------------------------------------------------------------------
@@ -600,6 +591,7 @@ def main():
             p_input['new_goal'] = l_step == args.num_local_steps - 1
             p_input['found_goal'] = found_goal[e]
             p_input['wait'] = wait_env[e] or finished[e]
+            p_input['outpainted_full_map'] = outpainted_map[e]
             if args.visualize or args.print_images:
                 local_map[e, -1, :, :] = 1e-5
                 p_input['sem_map_pred'] = local_map[e, 4:, :,
