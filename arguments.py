@@ -160,6 +160,9 @@ def get_args():
     parser.add_argument('--num_scan_part', type=int, default=5, 
         help='扫描时将全局地图每边划成 num_scan_part，分别扫描共 num_scan_part^2 个子区域')
 
+    # Out-Painting
+    parser.add_argument('--outpaint_every_step', type=int, default=0) # 0 for not out-painting
+
     # parse arguments
     args = parser.parse_args()
 

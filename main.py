@@ -14,11 +14,10 @@ from model import RL_Policy, Semantic_Mapping
 from utils.storage import GlobalRolloutStorage
 from utils.integration import EpisodeCollector
 from utils.topdown import WrappedTopdownCollector, TopdownCollector
+from utils.prediction import MapOutpainter
 from envs import make_vec_envs
 from arguments import get_args
 import algo
-
-from habitat_sim.agent.controls import default_controls
 
 os.environ["OMP_NUM_THREADS"] = "1"
 
@@ -115,10 +114,22 @@ def main():
 
     # Initializing full and local map
     full_map = torch.zeros(num_scenes, nc, full_w, full_h).float().to(device)
+    outpainted_map = torch.zeros(num_scenes, args.num_sem_categories, full_w, full_h).float().to(device)
     local_map = torch.zeros(num_scenes, nc, local_w,
                             local_h).float().to(device)
     episode_collector:EpisodeCollector = None
     topdown_collector: TopdownCollector = None
+    outpainter: MapOutpainter = None
+    def outpainting_scheduler(outpaint_every_step: int):
+        i = 0
+        while True:
+            if outpaint_every_step == 0:
+                yield False
+                continue
+            i = (i + 1) % outpaint_every_step
+            yield i == 0
+    outpaint_scheduler = outpainting_scheduler(args.outpaint_every_step)
+            
 
     # Initial full and local pose
     full_pose = torch.zeros(num_scenes, 3).float().to(device)
@@ -159,6 +170,7 @@ def main():
 
     def init_map_and_pose():
         full_map.fill_(0.)
+        outpainted_map.fill_(0.)
         full_pose.fill_(0.)
         full_pose[:, :2] = args.map_size_cm / 100.0 / 2.0
 
@@ -186,7 +198,7 @@ def main():
             local_pose[e] = full_pose[e] - \
                 torch.from_numpy(origins[e]).to(device).float()
         
-        nonlocal episode_collector, topdown_collector
+        nonlocal episode_collector, topdown_collector, outpainter
         episode_collector = EpisodeCollector(
             scene_names=envs.get_scene_id(),
             frequency=args.episode_collection_frequency, 
@@ -200,7 +212,7 @@ def main():
             args=args,
             started=args.topdown
         )
-
+        outpainter = MapOutpainter(outpainted_map.shape[1], args, [2], [120, 120]).to(device)
 
     def init_map_and_pose_for_env(e):
         new_scene_name = envs.get_scene_id()[e]
@@ -208,6 +220,7 @@ def main():
         episode_collector.update(e, new_scene_name)
 
         full_map[e].fill_(0.)
+        outpainted_map[e].fill_(0.)
         full_pose[e].fill_(0.)
         full_pose[e, :2] = args.map_size_cm / 100.0 / 2.0
 
@@ -317,7 +330,12 @@ def main():
     global_input[:, 0:4, :, :] = local_map[:, 0:4, :, :].detach()
     global_input[:, 4:8, :, :] = nn.MaxPool2d(args.global_downscaling)(
         full_map[:, 0:4, :, :])
-    global_input[:, 8:, :, :] = local_map[:, 4:, :, :].detach()
+    global_input[:, 8:, :, :] = torch.cat([
+            local_map[:, 4:, :, :].detach(), 
+            outpainted_map.detach()
+        ], 
+        dim=1
+    )
     goal_cat_id = torch.from_numpy(np.asarray(
         [infos[env_idx]['goal_cat_id'] for env_idx
          in range(num_scenes)]))
@@ -359,6 +377,7 @@ def main():
         p_input['new_goal'] = 1
         p_input['found_goal'] = 0
         p_input['wait'] = wait_env[e] or finished[e]
+        p_input['outpainted_full_map'] = outpainted_map
         if args.visualize or args.print_images:
             local_map[e, -1, :, :] = 1e-5
             p_input['sem_map_pred'] = local_map[e, 4:, :, :
@@ -528,6 +547,11 @@ def main():
         # ------------------------------------------------------------------
         
         episode_collector.collect(full_map)
+        if next(outpaint_scheduler):
+            assert full_map.requires_grad == False
+            with torch.no_grad():
+                outpainted_map = outpainter(full_map)
+        
 
         # ------------------------------------------------------------------
         # Update long-term goal if target object is found

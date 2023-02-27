@@ -12,6 +12,8 @@ from agents.utils.semantic_prediction import SemanticPredMaskRCNN
 from constants import color_palette
 import envs.utils.pose as pu
 import agents.utils.visualization as vu
+from utils.integration import visualize
+import torch
 
 
 class Sem_Exp_Env_Agent(ObjectGoal_Env):
@@ -389,8 +391,13 @@ class Sem_Exp_Env_Agent(ObjectGoal_Env):
         sem_map_vis = sem_map_vis[:, :, [2, 1, 0]]
         sem_map_vis = cv2.resize(sem_map_vis, (480, 480),
                                  interpolation=cv2.INTER_NEAREST)
+        
+        outpainted = inputs['outpained_full_map']
+        outpainted_vis = visualize(torch.cat([torch.zeros_like(outpainted[[0]]), outpainted]), 480)
+
         self.vis_image[50:530, 15:655] = self.rgb_vis
         self.vis_image[50:530, 670:1150] = sem_map_vis
+        self.vis_image[50:530, 1150+15 : 1150+15+480] = outpainted_vis
 
         pos = (
             (start_x * 100. / args.map_resolution - gy1)
